@@ -22,6 +22,7 @@ public class QsEditorPatch
         var buttonPrefab = dialogs.Find("PrefabObjectEditor/data/left/Scroll View/Viewport/content/expand");
 
         Transform button = Object.Instantiate(buttonPrefab, content);
+        button.name = "ReplaceButton";
         button.GetComponent<Button>().onClick.AddListener(new Action(() =>
         {
             var selectList = ObjectEditor.Inst.SelectedObjects.InOrder;
@@ -30,7 +31,8 @@ public class QsEditorPatch
             string instID = selection.prefabInstanceID;
 
             ObjectEditor.Inst.SelectedObjects.InOrder.ForEach(new Action<ObjectSelection>(x => { x.GetObjectData().prefabInstanceID = instID;}));
-         
+
+            ObjectEditor.Inst.MainSelectedObject = selectList[selectList.Count - 1];
             PrefabEditor.Inst.CollapseCurrentPrefab();
         }));
         button.GetChild(1).GetComponent<TextMeshProUGUI>().text = "Replace prefab with selection";
@@ -49,11 +51,11 @@ public class MultiObjectPanelPatch
 
         if (select[select.Count - 1].GetObjectData().prefabInstanceID != "")
         {
-            __instance.transform.GetChild(1).GetChild(0).GetChild(0).GetChild(25).gameObject.SetActive(true); //Find(string) doesnt work, WHYYYY???
+            __instance.transform.Find("data/Viewport/Content/ReplaceButton").gameObject.SetActive(true); 
         }
         else
         {
-            __instance.transform.GetChild(1).GetChild(0).GetChild(0).GetChild(25).gameObject.SetActive(false);
+            __instance.transform.Find("data/Viewport/Content/ReplaceButton").gameObject.SetActive(false);
         }
     }
 }
