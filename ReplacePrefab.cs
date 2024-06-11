@@ -27,35 +27,42 @@ public class QsEditorPatch
         {
             var selectList = ObjectEditor.Inst.SelectedObjects.InOrder;
             var selection = selectList[selectList.Count - 1].GetObjectData();
-            
+
             string instID = selection.prefabInstanceID;
 
-            ObjectEditor.Inst.SelectedObjects.InOrder.ForEach(new Action<ObjectSelection>(x => { x.GetObjectData().prefabInstanceID = instID;}));
+            ObjectEditor.Inst.SelectedObjects.InOrder.ForEach(new Action<ObjectSelection>(x =>
+            {
+                x.GetObjectData().prefabInstanceID = instID;
+            }));
 
             ObjectEditor.Inst.MainSelectedObject = selectList[selectList.Count - 1];
             PrefabEditor.Inst.CollapseCurrentPrefab();
         }));
         button.GetChild(1).GetComponent<TextMeshProUGUI>().text = "Replace prefab with selection";
-    }
 
+        MultiObjectPanelPatch.ReplaceButton = button.gameObject;
+    }
 }
 
 [HarmonyPatch(typeof(EditorElement_MultiObjectPanel))]
 public class MultiObjectPanelPatch
 {
+    public static GameObject ReplaceButton;
+
     [HarmonyPatch(nameof(EditorElement_MultiObjectPanel.OnRender))]
     [HarmonyPostfix]
-    static void PostSetup(ref EditorElement_MultiObjectPanel __instance)
+    static void PostRender(ref EditorElement_MultiObjectPanel __instance)
     {
         var select = ObjectEditor.Inst.SelectedObjects.InOrder;
 
         if (select[select.Count - 1].GetObjectData().prefabInstanceID != "")
         {
-            __instance.transform.Find("data/Viewport/Content/ReplaceButton").gameObject.SetActive(true); 
+            ReplaceButton.SetActive(true);
         }
         else
         {
-            __instance.transform.Find("data/Viewport/Content/ReplaceButton").gameObject.SetActive(false);
+            ReplaceButton.SetActive(false);
         }
     }
+
 }
