@@ -1,5 +1,6 @@
 using System;
 using HarmonyLib;
+using Il2CppInterop.Runtime;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,20 +26,18 @@ public class QsEditorPatch
         button.name = "ReplaceButton";
         button.GetComponent<Button>().onClick.AddListener(new Action(() =>
         {
-            var selectList = ObjectEditor.Inst.SelectedObjects.InOrder;
-            var selection = selectList[selectList.Count - 1].GetObjectData();
-
-            string instID = selection.prefabInstanceID;
+            string instID = ObjectEditor.Inst.MainSelectedObject.GetObjectData().prefabInstanceID;
 
             ObjectEditor.Inst.SelectedObjects.InOrder.ForEach(new Action<ObjectSelection>(x =>
             {
                 x.GetObjectData().prefabInstanceID = instID;
             }));
-
-            ObjectEditor.Inst.MainSelectedObject = selectList[selectList.Count - 1];
+            
             PrefabEditor.Inst.CollapseCurrentPrefab();
         }));
-        button.GetChild(1).GetComponent<TextMeshProUGUI>().text = "Replace prefab with selection";
+        
+        MultiObjectPanelPatch.ButtonText = button.GetChild(1).GetComponent<TextMeshProUGUI>();
+        MultiObjectPanelPatch.ButtonText.text = "Replace prefab with selection";
 
         MultiObjectPanelPatch.ReplaceButton = button.gameObject;
     }
@@ -48,21 +47,37 @@ public class QsEditorPatch
 public class MultiObjectPanelPatch
 {
     public static GameObject ReplaceButton;
+    public static TextMeshProUGUI ButtonText;
 
     [HarmonyPatch(nameof(EditorElement_MultiObjectPanel.OnRender))]
     [HarmonyPostfix]
     static void PostRender(ref EditorElement_MultiObjectPanel __instance)
     {
-        var select = ObjectEditor.Inst.SelectedObjects.InOrder;
 
-        if (select[select.Count - 1].GetObjectData().prefabInstanceID != "")
+        if (ObjectEditor.Inst.MainSelectedObject.GetObjectData().prefabInstanceID != "")
         {
+            //gets the prefab name of the latest selected obj
+            string id = ObjectEditor.Inst.MainSelectedObject.GetObjectData().prefabID;
+            id = DataManager.inst.gameData.prefabs
+                .Find(new Predicate<DataManager.GameData.Prefab>(x => x.ID == id).ToIL2CPP()).Name;
+            
+            ButtonText.text = $"Replace '{id}' with Selection";
             ReplaceButton.SetActive(true);
+            
+            //ObjectEditor.Inst.MainSelectedObject.GetPrefabData() returns null :(
         }
         else
         {
             ReplaceButton.SetActive(false);
         }
     }
+}
 
+public static class PredicateExtension
+{
+    //this is here so I dont have to call ConvertDelegate manually every time. will likely re-use this in other mods
+    public static Il2CppSystem.Predicate<T> ToIL2CPP<T>(this Predicate<T> predicate)
+    {
+        return DelegateSupport.ConvertDelegate<Il2CppSystem.Predicate<T>>(predicate);
+    }
 }
